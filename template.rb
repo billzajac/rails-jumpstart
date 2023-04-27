@@ -13,7 +13,7 @@ def add_template_repository_to_source_path
     at_exit { FileUtils.remove_entry(tempdir) }
     git clone: [
       "--quiet",
-      "https://github.com/excid3/jumpstart.git",
+      "https://github.com/billzajac/rails-jumpstart.git",
       tempdir
     ].map(&:shellescape).join(" ")
 
@@ -44,6 +44,8 @@ def add_gems
   add_gem 'omniauth-facebook', '~> 8.0'
   add_gem 'omniauth-github', '~> 2.0'
   add_gem 'omniauth-twitter', '~> 1.4'
+  add_gem 'omniauth-google-oauth2'
+  add_gem 'omniauth-rails_csrf_protection'
   add_gem 'pretender', '~> 0.3.4'
   add_gem 'pundit', '~> 2.1'
   add_gem 'sidekiq', '~> 6.2'
@@ -77,7 +79,7 @@ def add_users
     gsub_file "config/initializers/devise.rb", /  # config.secret_key = .+/, "  config.secret_key = Rails.application.credentials.secret_key_base"
   end
 
-  inject_into_file("app/models/user.rb", "omniauthable, :", after: "devise :")
+  inject_into_file("app/models/user.rb", "omniauthable, omniauth_providers: [:google_oauth2], :", after: "devise :")
 end
 
 def add_authorization
@@ -119,11 +121,10 @@ end
 def add_sidekiq
   environment "config.active_job.queue_adapter = :sidekiq"
 
-  insert_into_file "config/routes.rb",
-    "require 'sidekiq/web'\n\n",
-    before: "Rails.application.routes.draw do"
+  insert_into_file "config/routes.rb", "require 'sidekiq/web'\n\n", before: "Rails.application.routes.draw do"
 
   content = <<~RUBY
+               
                 authenticate :user, lambda { |u| u.admin? } do
                   mount Sidekiq::Web => '/sidekiq'
 
@@ -148,17 +149,36 @@ def add_notifications
 end
 
 def add_multiple_authentication
-  insert_into_file "config/routes.rb", ', controllers: { omniauth_callbacks: "users/omniauth_callbacks" }', after: "  devise_for :users"
+  content = <<~RUBY
+  , controllers: { omniauth_callbacks: "users/omniauth_callbacks" }, :skip => [:registrations] 
+  as :user do
+    get 'users/edit' => 'devise/registrations#edit', :as => 'edit_user_registration'
+    put 'users' => 'devise/registrations#update', :as => 'user_registration'
+  end
+  RUBY
+  insert_into_file "config/routes.rb", "#{content}\n", after: "  devise_for :users"
+
 
   generate "model Service user:references provider uid access_token access_token_secret refresh_token expires_at:datetime auth:text"
 
   template = """
-  env_creds = Rails.application.credentials[Rails.env.to_sym] || {}
-  %i{ facebook twitter github }.each do |provider|
-    if options = env_creds[provider]
-      config.omniauth provider, options[:app_id], options[:app_secret], options.fetch(:options, {})
-    end
-  end
+  # Set the credentials with the following
+  # EDITOR=vim rails credentials:edit # --environment development
+  #
+  # google_oauth2:
+  #   app_id: YOUR_KEY
+  #   app_secret: YOUR_SECRET
+
+  google_creds = Rails.application.credentials[:google_oauth2] || {}
+  config.omniauth :google_oauth2, google_creds[:app_id], google_creds[:app_secret], prompt: 'consent', provider_ignores_state: true
+
+  # If you want multiple auth providers at some point, this could be handy
+  # env_creds = Rails.application.credentials || {}
+  # %i{ facebook twitter github }.each do |provider|
+  #   if options = env_creds[provider]
+  #     config.omniauth provider, options[:app_id], options[:app_secret], options.fetch(:options, {})
+  #   end
+  # end
   """.strip
 
   insert_into_file "config/initializers/devise.rb", "  " + template + "\n\n", before: "  # ==> Warden configuration"
@@ -265,5 +285,13 @@ after_bundle do
   say "  rails db:migrate"
   say "  rails g madmin:install # Generate admin dashboards"
   say "  gem install foreman"
+  say
+  say "  # Set the credentials for your google auth"
+  say "  # google_oauth2:"
+  say "  #   app_id: YOUR_CLIENT_ID "
+  say "  #   app_secret: YOUR_CLIENT_SECRET "
+  say
+  say "  rails credentials:edit --environment development"
+
   say "  bin/dev"
 end

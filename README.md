@@ -28,7 +28,7 @@ You'll need the following installed to run the template successfully:
 #### Creating a new app
 
 ```bash
-rails new myapp -d postgresql -m https://raw.githubusercontent.com/excid3/jumpstart/master/template.rb
+rails new myapp -d postgresql -m https://raw.githubusercontent.com/billzajac/jumpstart/master/template.rb
 ```
 
 Or if you have downloaded this repo, you can reference template.rb locally:
@@ -51,30 +51,26 @@ A separate `Procfile` is generated for deploying to production on Heroku.
 
 #### Authenticate with social networks
 
-We use the encrypted Rails Credentials for app_id and app_secrets when it comes to omniauth authentication. Edit them as so:
+We use the encrypted Rails Credentials for app_id and app_secrets when it comes to omniauth authentication. 
+Each environment has its own file and can be edited using the --environment flag
+Edit them as so:
 
 ```
 EDITOR=vim rails credentials:edit
+EDITOR=vim rails credentials:edit --environment test
 ```
 
 Make sure your file follow this structure:
 
 ```yml
 secret_key_base: [your-key]
-development:
-  github:
-    app_id: something
-    app_secret: something
-    options:
-      scope: 'user:email'
-      whatever: true
-production:
-  github:
-    app_id: something
-    app_secret: something
-    options:
-      scope: 'user:email'
-      whatever: true
+google_oauth2:
+  app_id: something
+  app_secret: something
+  options:
+    prompt: 'consent'
+    provider_ignores_state: true
+    scope: 'email,profile'
 ```
 
 With the environment, the service and the app_id/app_secret. If this is done correctly, you should see login links
