@@ -79,13 +79,7 @@ def add_users
     gsub_file "config/initializers/devise.rb", /  # config.secret_key = .+/, "  config.secret_key = Rails.application.credentials.secret_key_base"
   end
 
-  content = <<~RUBY
-  devise :database_authenticatable, :registerable, :rememberable, :validatable,
-  :omniauthable, omniauth_providers: [:google_oauth2]
-  attribute :allow_local_auth, :boolean, default: false
-  RUBY
-  gsub_file "app/models/user.rb", /devise :.*/, "#{content}\n"
-  #inject_into_file("app/models/user.rb", "omniauthable, omniauth_providers: [:google_oauth2], :", after: "devise :")
+  inject_into_file("app/models/user.rb", "omniauthable, :", after: "devise :")
 end
 
 def add_authorization
