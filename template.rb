@@ -291,7 +291,7 @@ after_bundle do
   say "  #   app_id: YOUR_CLIENT_ID "
   say "  #   app_secret: YOUR_CLIENT_SECRET "
   say
-  say "  rails credentials:edit --environment development"
+  say "  EDITOR=vim bin/rails credentials:edit --environment development"
 
   say "  bin/dev"
 end

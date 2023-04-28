@@ -2,7 +2,7 @@
   <div class="col-lg-4 offset-lg-4">
     <h1 class="text-center">Log in</h1>
 
-    <%- if @user.allow_local_auth %>
+    <%- if User.allow_local_auth %>
       <%= render "devise/sessions/local" %>
     <% end %>
     <div class="text-center">
