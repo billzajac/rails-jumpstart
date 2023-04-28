@@ -154,6 +154,7 @@ def add_multiple_authentication
   as :user do
     get 'users/edit' => 'devise/registrations#edit', :as => 'edit_user_registration'
     put 'users' => 'devise/registrations#update', :as => 'user_registration'
+    delete 'users' => 'devise/registrations#destroy'
   end
   RUBY
   insert_into_file "config/routes.rb", "#{content}\n", after: "  devise_for :users"
@@ -291,7 +292,7 @@ after_bundle do
   say "  #   app_id: YOUR_CLIENT_ID "
   say "  #   app_secret: YOUR_CLIENT_SECRET "
   say
-  say "  EDITOR=vim bin/rails credentials:edit --environment development"
+  say "  EDITOR=vim bin/rails credentials:edit # --environment development"
 
   say "  bin/dev"
 end
